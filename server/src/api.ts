@@ -47,6 +47,21 @@ api.get('/hello', (c) => {
   });
 });
 
+// Internal API routes for trading engine (API key auth)
+const internalApi = new Hono();
+
+// Enhanced API key middleware with IP whitelisting and rate limiting
+import { internalApiAuthMiddleware } from './middleware/internal-api-auth';
+internalApi.use('*', internalApiAuthMiddleware);
+
+// Import trading activity routes for internal access
+import tradingActivityRoutes from './routes/trading-activity';
+import mt5InternalRoutes from './routes/mt5-internal';
+internalApi.route('/trading-activity', tradingActivityRoutes);
+internalApi.route('/mt5', mt5InternalRoutes);
+
+api.route('/internal', internalApi);
+
 // Database test route - public for testing
 api.get('/db-test', async (c) => {
   try {
@@ -104,8 +119,29 @@ protectedRoutes.get('/me', (c) => {
   });
 });
 
-// Mount the protected routes under /protected
+// Import route modules
+import mt5Routes from './routes/mt5';
+import botConfigRoutes from './routes/bot-config';
+import tradingActivityRoutes from './routes/trading-activity';
+import dashboardRoutes from './routes/dashboard';
+import analyticsRoutes from './routes/analytics';
+import accountSettingsRoutes from './routes/account-settings';
+import healthRoutes from './routes/health';
+
+// Mount feature routes under protected BEFORE mounting protectedRoutes to api
+// This ensures all child routes are included when protectedRoutes is mounted
+protectedRoutes.route('/mt5', mt5Routes);
+protectedRoutes.route('/bot-config', botConfigRoutes);
+protectedRoutes.route('/trading', tradingActivityRoutes);
+protectedRoutes.route('/dashboard', dashboardRoutes);
+protectedRoutes.route('/analytics', analyticsRoutes);
+protectedRoutes.route('/account-settings', accountSettingsRoutes);
+
+// Mount the protected routes under /protected (after child routes are added)
 api.route('/protected', protectedRoutes);
+
+// Health check routes (public)
+api.route('/health', healthRoutes);
 
 // Mount the API router
 app.route('/api/v1', api);

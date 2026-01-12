@@ -1,0 +1,20 @@
+[Unit]
+Description=Scalping Bot Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=scalpingbot
+WorkingDirectory=/home/scalpingbot/app
+Environment=NODE_ENV=production
+Environment=PORT=5173
+ExecStart=/usr/bin/pnpm --filter ui preview --port 5173 --host 0.0.0.0
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalpingbot-frontend
+
+[Install]
+WantedBy=multi-user.target
+

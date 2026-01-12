@@ -1,0 +1,255 @@
+# Trading Engine Configuration
+
+# Risk Parameters
+risk:
+  risk_per_trade: 0.5  # Percentage of equity to risk per trade
+  stop_loss_range:
+    min: 0.25  # Minimum stop loss percentage
+    max: 0.50  # Maximum stop loss percentage
+    preferred: 0.35  # WIDENED: Increased to 0.35 (35 points) to reduce premature stop-outs
+  risk_reward_ratio:
+    min: 1.0
+    preferred: 1.5  # OPTIMIZED: Increased from 1.2 to 1.5 for better profitability
+    max: 2.0
+  # OPTIMIZED: Support for micro lots to allow proper risk management with small accounts
+  max_lot_size: 0.10  # Keep safety cap
+  min_lot_size: 0.01  # Match broker minimum
+
+# Trading Sessions (Local Time)
+# ⚠️ TEMPORARY: Extended hours enabled for testing - REVERT before live trading
+sessions:
+  prime:
+    - start: "08:00"
+      end: "09:30"
+      enabled: true
+    - start: "13:00"
+      end: "15:00"
+      enabled: true
+    - start: "14:30"
+      end: "15:30"
+      enabled: true
+  acceptable:
+    - start: "09:30"
+      end: "13:00"
+      enabled: true
+    - start: "15:30"
+      end: "17:00"
+      enabled: true
+    # TEST WINDOW - TEMPORARILY ENABLED for testing purposes
+    - start: "17:00"
+      end: "23:00"
+      enabled: true  # TEMPORARY: Enabled for testing - DISABLE before live trading
+    # EXTENDED TEST WINDOW - DISABLED: Overnight trading disabled
+    - start: "00:00"
+      end: "08:00"
+      enabled: false  # CRITICAL: Disable overnight
+  risk_multiplier:
+    prime: 1.0
+    acceptable: 0.75
+
+# Circuit Breaker Thresholds
+# ⚠️ TEMPORARY: ALL CIRCUIT BREAKERS BYPASSED FOR TESTING - REINSTATE BEFORE LIVE TRADING
+circuit_breaker:
+  consecutive_losses: 999  # TEMPORARY: Bypassed for testing - REINSTATE to 3 before live trading
+  losses_in_window: 999  # TEMPORARY: Bypassed for testing - REINSTATE to 5 before live trading
+  window_size: 7
+  daily_drawdown_percent: 99.0  # TEMPORARY: Bypassed for testing - REINSTATE to 3.0 before live trading
+  stopouts_in_window: 999  # TEMPORARY: Bypassed for testing - REINSTATE to 4 before live trading
+  stopout_window_size: 5
+  halt_duration_minutes: 60
+  graduated_response:
+    after_1_loss:
+      confidence_threshold: 70
+    after_2_losses:
+      risk_percent: 0.3
+      confidence_threshold: 65  # REDUCED: Lowered from 70% to 65% to allow more quality signals while maintaining protection
+      spread_tightening: 0.2  # 20% tighter spread filter
+
+# Execution Settings
+execution:
+  cycle_interval_seconds: 30
+  max_concurrent_positions: 1
+  slippage_tolerance_points: 2
+  max_execution_latency_ms: 2000
+
+# Spread Limits (points) - For XAUUSD scalping
+# Typical Gold spreads: 10-20 points (good), 20-30 points (acceptable), 30+ points (avoid)
+spread:
+  prime_max: 18.0  # TIGHTENED: Reduced from 25.0 to 18.0 to minimize slippage (expert scalper recommendation)
+  acceptable_max: 22.0  # TIGHTENED: Reduced from 35.0 to 22.0 to reduce execution costs
+  default_max: 20.0  # TIGHTENED: Reduced from 30.0 to 20.0 for better fills
+
+# ATR Filtering
+atr:
+  min_points: 3.0  # SCALPING: Lowered from 5.0 to 3.0 to allow trading in low-volatility periods (post-holiday, quiet sessions)
+  max_points: 25.0  # OPTIMIZED: Increased from 22.0 to 25.0 for high volatility periods
+  optimal_min: 3.5  # EXPERT SCALPER: Lowered from 6.0 to 3.5 to match current market conditions (no penalty for 3-5 ATR)
+  optimal_max: 18.0  # EXPERT SCALPER: Raised from 14.0 to 18.0 to widen optimal zone significantly
+  spike_multiplier: 1.8
+  average_period: 20
+
+# Exit Strategy
+exit:
+  time_limit_minutes: 15
+  breakeven_profit_percent: 0.15
+  partial_exit_1_percent: 0.20
+  partial_exit_1_close_percent: 50
+  partial_exit_2_percent: 0.35
+  partial_exit_2_close_percent: 30
+  breakeven_buffer_points: 2
+
+# Indicators
+indicators:
+  ema_period: 21
+  rsi_period: 14
+  atr_period: 14
+  swing_lookback: 10
+
+# Signal Generation
+signals:
+  min_confidence: 68  # OPTIMIZED: Raised to 68% to filter for higher quality signals
+  sell_confidence_penalty: -15  # Require 15% higher confidence for sell signals
+  momentum_candles: 3
+  min_body_ratio: 0.35  # OPTIMIZED: Lowered from 0.60 to 0.35 for more flexibility
+  strong_body_ratio: 0.70
+  price_level_tolerance_points: 30  # OPTIMIZED: Increased from 10 to 30 points
+  ema_pullback_tolerance_points: 20  # OPTIMIZED: Increased from 6 to 20 points
+  rsi_oversold: 30
+  rsi_overbought: 70
+  rsi_extreme_low: 25
+  rsi_extreme_high: 75
+  
+  # RSI Zone-Based Scoring (replaces hard thresholds)
+  rsi_conditions:
+    mode: "zone_based_scoring"  # Zone-based confidence adjustment, not hard rejection
+    
+    # Zone-based scoring allows 30-50 RSI range for buy and 50-70 for sell with lower confidence
+    # This replaces the restrictive < 30 / > 70 hard thresholds
+    
+    # FOR BUY SIGNALS - Zone Scoring:
+    #   RSI < 30:    +10% confidence (extreme oversold - best)
+    #   RSI 30-40:   +5% confidence (strong oversold)
+    #   RSI 40-50:   0% adjustment (acceptable, allows 30-50 range)
+    #   RSI 50-60:   -5% confidence (neutral, less ideal)
+    #   RSI > 60:    -10% confidence (overbought, not ideal)
+    
+    buy_conditions:
+      m1_rsi_range: [30, 60]  # Expanded to allow 30-60 range with lower confidence
+      m5_rsi_minimum: 45      # Slightly bullish bias (for reference, not hard requirement)
+      
+      OR_divergence_detected:  # Advanced, optional
+        # Price makes lower low, RSI makes higher low = bullish divergence
+        enabled: false  # Start false, add later
+    
+    # FOR SELL SIGNALS - Zone Scoring:
+    #   RSI > 70:    +10% confidence (extreme overbought - best)
+    #   RSI 60-70:   +5% confidence (strong overbought)
+    #   RSI 50-60:   0% adjustment (acceptable, allows 50-70 range)
+    #   RSI 40-50:   -5% confidence (neutral, less ideal)
+    #   RSI < 40:    -10% confidence (oversold, not ideal)
+    
+    sell_conditions:
+      m1_rsi_range: [50, 70]  # Expanded to allow 50-70 range with lower confidence
+      m5_rsi_maximum: 55      # Slightly bearish bias (for reference, not hard requirement)
+    
+    # Note: RSI is now confidence-only, not a hard rejection filter
+    # Signals with RSI in 30-50 (buy) or 50-70 (sell) ranges are allowed with adjusted confidence
+  
+  # Price Condition Scalping Approach
+  price_conditions:
+    # CONDITION 1: Near Key Levels
+    swing_level_proximity:
+      tolerance_points: 30  # OPTIMIZED: Increased from 12 to 30 points for much wider entry zones
+      lookback_candles: 15  # Last 15 M5 candles
+      minimum_bounces: 1   # Level must have been tested once
+    
+    # CONDITION 2: EMA Pullback
+    ema_pullback:
+      tolerance_points: 20   # OPTIMIZED: Increased from 8 to 20 points for much wider pullback zones
+      must_have_touched: false  # OPTIMIZED: Changed to false - don't require EMA touch (too restrictive)
+    
+    # CONDITION 3: Liquidity Sweep (keep as is)
+    liquidity_sweep:
+      enabled: true
+      sweep_threshold: 2  # Wick extends 2 points beyond swing
+    
+    # CONDITION 4: Clean Breakout (enhanced detection)
+    breakout_entry:
+      enabled: true
+      # Enhanced breakout detection:
+      # - Price breaks through M5 swing level with momentum
+      # - Breakout is sustained (current price confirms direction)
+      # - Requires strong body (>= 40% body ratio) to avoid false breakouts
+      # - Catches momentum continuation, not just reversals
+      # Trigger: M1 breaks above/below M5 swing level
+      # Confirmation: Current price sustains breakout with momentum
+  
+  # Momentum Scalping Approach (two-stage validation with weighted scoring)
+  momentum_validation:
+    method: "two_stage"  # Weighted scoring replaces all() check
+    
+    stage_1_confirmation:  # Weighted momentum scoring
+      lookback: 2  # Last 2 M1 candles
+      requirement: "weighted_scoring"  # Current candle 60%, previous 40%
+      min_body_ratio: 0.35  # OPTIMIZED: Relaxed from 0.40 to 0.35 for more signal generation
+      weighted_threshold: 0.70  # TIGHTENED: Increased to 0.70 for stricter momentum confirmation
+      # Weighted scoring allows partial matches - more flexible than all() requirement
+      # Current candle (60% weight) + Previous candle (40% weight) >= threshold
+    
+    stage_2_strength:  # Is it accelerating?
+      current_candle_size: ">= 0.50x average of last 5"  # SCALPING: Lowered from 0.85x to 0.50x - allow smaller candles
+      OR_volume_spike: ">= 1.3x average"  # If volume available
+      skip_if_stage1_strong: true  # Skip Stage 2 if Stage 1 weighted score >= 0.5
+      stage1_strong_threshold: 0.5  # SCALPING: Lowered from 0.7 to 0.5 - skip Stage 2 more often
+    
+    rejection_filter:  # Critical for scalping
+      max_wick_ratio: 0.45  # OPTIMIZED: Relaxed from 0.40 to 0.45 to allow more wick
+      # Large wick = rejection/reversal, not momentum
+
+  # Trend Alignment Scalping Approach
+  trend_alignment:
+    structure_validation:
+      strict_mode: false  # Don't require perfect alignment
+    
+    # ALIGNMENT SCORING
+    alignment_check:
+      m5_trend: "bullish|bearish|neutral"
+      m1_momentum: "bullish|bearish|neutral"
+      
+      scoring:
+        both_bullish: 15  # confidence +15%
+        both_bearish: 15  # confidence +15%
+        m5_bullish_m1_neutral: 5  # confidence +5%
+        m5_neutral_m1_bullish: 0  # confidence +0% (allow!)
+        m5_bearish_m1_neutral: 5  # confidence +5%
+        m5_neutral_m1_bearish: 0  # confidence +0% (allow!)
+        conflicting: -25  # Heavy penalty for conflicting alignments (M5 vs M1 direction mismatch)
+    
+    # NEUTRAL TREND HANDLING (critical for ranging markets)
+    neutral_trend_rules:
+      allow_trades: true
+      require_stronger_momentum: true  # Need 2/2 candles, not 1/2
+      reduce_position_size: 0.7  # Risk 0.35% instead of 0.5%
+      tighter_stop: 0.25  # Use 0.25% SL instead of 0.30%
+
+# Logging
+logging:
+  level: "DEBUG"  # OPTIMIZED: Changed from INFO to DEBUG for detailed troubleshooting
+  directory: "logs"
+  rotation_days: 30
+  compression_days: 7
+
+# Database (PostgreSQL with connection pooling)
+database:
+  # Connection string (or use DATABASE_URL env var)
+  connection_string: null  # e.g., "postgresql://user:password@localhost:5502/postgres"
+  # Required: User ID and MT5 Account ID for this trading engine instance
+  # Can also be set via TRADING_ENGINE_USER_ID and TRADING_ENGINE_MT5_ACCOUNT_ID env vars
+  user_id: null
+  mt5_account_id: null
+  # Connection pool settings
+  min_connections: 2
+  max_connections: 10
+  retention_days: 30
+
+

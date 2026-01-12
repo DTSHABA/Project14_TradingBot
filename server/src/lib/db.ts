@@ -3,6 +3,10 @@ import { drizzle as createDrizzlePostgres } from 'drizzle-orm/postgres-js';
 import { neon } from '@neondatabase/serverless';
 import postgres from 'postgres';
 import * as schema from '../schema/users';
+import * as mt5Schema from '../schema/mt5_accounts';
+import * as botConfigSchema from '../schema/bot_configs';
+import * as tradingActivitySchema from '../schema/trading_activity';
+import * as accountSettingsSchema from '../schema/account_settings';
 
 type DatabaseConnection = ReturnType<typeof drizzle> | ReturnType<typeof createDrizzlePostgres>;
 
@@ -14,9 +18,17 @@ const isNeonDatabase = (connectionString: string): boolean => {
 };
 
 const createConnection = async (connectionString: string): Promise<DatabaseConnection> => {
+  const allSchemas = {
+    ...schema,
+    ...mt5Schema,
+    ...botConfigSchema,
+    ...tradingActivitySchema,
+    ...accountSettingsSchema,
+  };
+
   if (isNeonDatabase(connectionString)) {
     const sql = neon(connectionString);
-    return drizzle(sql, { schema });
+    return drizzle(sql, { schema: allSchemas });
   }
 
   const client = postgres(connectionString, {
@@ -26,7 +38,7 @@ const createConnection = async (connectionString: string): Promise<DatabaseConne
     max_lifetime: 60 * 30,
   });
 
-  return createDrizzlePostgres(client, { schema });
+  return createDrizzlePostgres(client, { schema: allSchemas });
 };
 
 export const getDatabase = async (connectionString?: string): Promise<DatabaseConnection> => {

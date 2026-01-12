@@ -1,0 +1,22 @@
+[Unit]
+Description=Scalping Bot Backend API Service
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=scalpingbot
+WorkingDirectory=/home/scalpingbot/app
+Environment=NODE_ENV=production
+Environment=PORT=5500
+EnvironmentFile=/home/scalpingbot/app/server/.env
+ExecStart=/usr/bin/pnpm --filter server dev --port 5500
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalpingbot-backend
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,8 +1,12 @@
 import { 
   Home, 
   Settings, 
+  LayoutDashboard,
+  BarChart3,
+  HelpCircle,
+  UserPlus,
+  Bot,
   FileText,
-  Layers,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -38,18 +42,50 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Page 1" isActive={isActive('/page1')} asChild>
-                  <Link to="/page1">
-                    <FileText className="w-4 h-4" />
-                    <span>Page 1</span>
+                <SidebarMenuButton tooltip="Dashboard" isActive={isActive('/dashboard')} asChild>
+                  <Link to="/dashboard">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Page 2" isActive={isActive('/page2')} asChild>
-                  <Link to="/page2">
-                    <Layers className="w-4 h-4" />
-                    <span>Page 2</span>
+                <SidebarMenuButton tooltip="AI Control" isActive={isActive('/ai-control')} asChild>
+                  <Link to="/ai-control">
+                    <Bot className="w-4 h-4" />
+                    <span>AI Control</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Reports" isActive={isActive('/reports')} asChild>
+                  <Link to="/reports">
+                    <FileText className="w-4 h-4" />
+                    <span>Reports</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Analytics" isActive={isActive('/analytics')} asChild>
+                  <Link to="/analytics">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Analytics</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Support" isActive={isActive('/support')} asChild>
+                  <Link to="/support">
+                    <HelpCircle className="w-4 h-4" />
+                    <span>Support</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Onboarding" isActive={isActive('/onboarding')} asChild>
+                  <Link to="/onboarding">
+                    <UserPlus className="w-4 h-4" />
+                    <span>Onboarding</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,0 +1,23 @@
+[Unit]
+Description=Scalping Bot MT5 API Service
+After=network.target
+
+[Service]
+Type=simple
+User=scalpingbot
+WorkingDirectory=/home/scalpingbot/app/trading-engine
+Environment=MT5_API_PORT=5001
+Environment=MT5_API_HOST=127.0.0.1
+Environment=DEBUG=false
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/home/scalpingbot/app/trading-engine/.env
+ExecStart=/home/scalpingbot/app/trading-engine/venv/bin/python mt5_api.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalpingbot-mt5-api
+
+[Install]
+WantedBy=multi-user.target
+

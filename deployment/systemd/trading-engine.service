@@ -1,0 +1,21 @@
+[Unit]
+Description=Scalping Bot Trading Engine Service
+After=network.target mt5-api.service
+Requires=mt5-api.service
+
+[Service]
+Type=simple
+User=scalpingbot
+WorkingDirectory=/home/scalpingbot/app/trading-engine
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/home/scalpingbot/app/trading-engine/.env
+ExecStart=/home/scalpingbot/app/trading-engine/venv/bin/python src/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalpingbot-trading-engine
+
+[Install]
+WantedBy=multi-user.target
+

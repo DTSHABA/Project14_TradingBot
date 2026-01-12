@@ -26,7 +26,10 @@ export function Navbar({ onSignInClick }: NavbarProps = {}) {
         <SidebarTrigger className="size-8">
           <Menu className="w-5 h-5" />
         </SidebarTrigger>
-        <span className="font-semibold ml-3">My App</span>
+        <div className="flex flex-col ml-3">
+          <span className="font-semibold text-base leading-tight">AURA</span>
+          <span className="text-xs text-muted-foreground leading-tight">AI Trading Bot</span>
+        </div>
       </div>
       <div className="flex items-center gap-3 ml-auto">
         {user && !isAnonymous && (

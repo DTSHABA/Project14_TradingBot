@@ -1,6 +1,6 @@
 {
-  "name": "VoloApp",
-  "short_name": "VoloApp",
+  "name": "AURA - AI Trading Bot",
+  "short_name": "AURA",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

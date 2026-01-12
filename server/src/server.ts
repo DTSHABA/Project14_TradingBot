@@ -39,6 +39,8 @@ const startServer = async () => {
   serve({
     fetch: app.fetch,
     port,
+  }, (info) => {
+    console.log(`✅ Server is running on http://localhost:${info.port}`);
   });
 };
 
