@@ -56,37 +56,37 @@ module.exports = {
       listen_timeout: 10000
     },
     
-    // MT5 API Service (Python Flask)
-    {
-      name: 'mt5-api',
-      script: 'python3',
-      args: 'mt5_api.py',
-      cwd: '/home/scalpingbot/app/trading-engine',
-      interpreter: '/home/scalpingbot/app/trading-engine/venv/bin/python',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        MT5_API_PORT: '5001',
-        MT5_API_HOST: '127.0.0.1',
-        DEBUG: 'false',
-        PYTHONUNBUFFERED: '1'
-      },
-      env_file: '/home/scalpingbot/app/trading-engine/.env',
-      error_file: '/home/scalpingbot/.pm2/logs/mt5-api-error.log',
-      out_file: '/home/scalpingbot/.pm2/logs/mt5-api-out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '500M'
-    },
+    // MT5 API Service (Python Flask) - DISABLED (MetaTrader5 is Windows-only)
+    // {
+    //   name: 'mt5-api',
+    //   script: 'python3',
+    //   args: 'mt5_api.py',
+    //   cwd: '/home/scalpingbot/app/trading-engine',
+    //   interpreter: '/home/scalpingbot/app/trading-engine/venv/bin/python',
+    //   instances: 1,
+    //   exec_mode: 'fork',
+    //   env: {
+    //     MT5_API_PORT: '5001',
+    //     MT5_API_HOST: '127.0.0.1',
+    //     DEBUG: 'false',
+    //     PYTHONUNBUFFERED: '1'
+    //   },
+    //   env_file: '/home/scalpingbot/app/trading-engine/.env',
+    //   error_file: '/home/scalpingbot/.pm2/logs/mt5-api-error.log',
+    //   out_file: '/home/scalpingbot/.pm2/logs/mt5-api-out.log',
+    //   log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    //   merge_logs: true,
+    //   autorestart: true,
+    //   watch: false,
+    //   max_memory_restart: '500M'
+    // },
     
     // Trading Engine Manager
     // This process manages all trading engine instances dynamically
     {
       name: 'trading-engine-manager',
       script: 'node',
-      args: 'deployment/trading-engine-manager.js',
+      args: 'deployment/trading-engine-manager.cjs',
       cwd: '/home/scalpingbot/app',
       instances: 1,
       exec_mode: 'fork',
