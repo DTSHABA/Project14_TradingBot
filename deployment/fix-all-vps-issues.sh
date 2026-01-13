@@ -26,13 +26,20 @@ else
     exit 1
 fi
 
-# Step 2: Update ecosystem.config.cjs if needed
-echo -e "${YELLOW}Step 2: Updating ecosystem.config.cjs...${NC}"
+# Step 2: Update ecosystem config file (handle both .js and .cjs)
+echo -e "${YELLOW}Step 2: Updating ecosystem config...${NC}"
 if [ -f "ecosystem.config.cjs" ]; then
-    sed -i 's|deployment/trading-engine-manager.js|deployment/trading-engine-manager.cjs|' ecosystem.config.cjs
+    CONFIG_FILE="ecosystem.config.cjs"
+    sed -i 's|deployment/trading-engine-manager.js|deployment/trading-engine-manager.cjs|' "$CONFIG_FILE"
     echo -e "${GREEN}✓ Updated ecosystem.config.cjs${NC}"
+elif [ -f "ecosystem.config.js" ]; then
+    # Rename .js to .cjs
+    mv ecosystem.config.js ecosystem.config.cjs
+    CONFIG_FILE="ecosystem.config.cjs"
+    sed -i 's|deployment/trading-engine-manager.js|deployment/trading-engine-manager.cjs|' "$CONFIG_FILE"
+    echo -e "${GREEN}✓ Renamed ecosystem.config.js to .cjs and updated${NC}"
 else
-    echo -e "${RED}✗ ecosystem.config.cjs not found!${NC}"
+    echo -e "${RED}✗ ecosystem.config file not found!${NC}"
     exit 1
 fi
 
@@ -57,7 +64,7 @@ echo -e "${GREEN}✓ PM2 processes cleaned${NC}"
 
 # Step 5: Restart PM2 with updated config
 echo -e "${YELLOW}Step 5: Restarting PM2 services...${NC}"
-pm2 start ecosystem.config.cjs
+pm2 start "$CONFIG_FILE"
 pm2 save
 echo -e "${GREEN}✓ PM2 services restarted${NC}"
 
