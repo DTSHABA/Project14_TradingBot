@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend as RechartsLegend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import type { SignalAnalysis } from '@/types/trading';
 
 interface SignalAnalysisChartsProps {
@@ -46,7 +46,7 @@ export function SignalAnalysisCharts({ data, isLoading }: SignalAnalysisChartsPr
     return null;
   };
 
-  const rejectionData = data.rejection_reasons.map((r, i) => ({
+  const rejectionData = data.rejection_reasons.map((r) => ({
     name: r.reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     value: r.count,
   }));
@@ -100,12 +100,12 @@ export function SignalAnalysisCharts({ data, isLoading }: SignalAnalysisChartsPr
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {rejectionData.map((entry, index) => (
+                  {rejectionData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -141,11 +141,11 @@ export function SignalAnalysisCharts({ data, isLoading }: SignalAnalysisChartsPr
                 tickFormatter={(value) => `${value}%`}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="win_rate" fill="hsl(142, 76%, 36%)" name="Win Rate">
-                {data.confidence_vs_outcome.map((entry, index) => (
+                <Bar dataKey="win_rate" fill="hsl(142, 76%, 36%)" name="Win Rate">
+                {data.confidence_vs_outcome.map((item, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.win_rate >= 50 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'} 
+                    fill={item.win_rate >= 50 ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 60%)'} 
                   />
                 ))}
               </Bar>
@@ -187,7 +187,7 @@ export function SignalAnalysisCharts({ data, isLoading }: SignalAnalysisChartsPr
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" fill="hsl(0, 84%, 60%)" name="Rejections">
-                  {rejectionData.map((entry, index) => (
+                  {rejectionData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>

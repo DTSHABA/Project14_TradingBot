@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useMT5Connection } from '@/hooks/useMT5Connection';
 import { getBotConfig, updateBotConfig } from '@/lib/api/bot-config';
-import { testMT5Connection } from '@/lib/api/mt5';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +15,6 @@ import {
   Settings as SettingsIcon, 
   CreditCard, 
   Bell, 
-  CheckCircle, 
-  XCircle,
   Loader2,
   AlertTriangle
 } from 'lucide-react';
