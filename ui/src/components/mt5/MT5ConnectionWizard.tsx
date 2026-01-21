@@ -5,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMT5Connection } from '@/hooks/useMT5Connection';
 import type { NewMT5Account, ConnectionTestResult } from '@/types/trading';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
+import { API_BASE_URL } from '@/lib/serverComm';
 
 const BROKERS = [
   'IC Markets',
@@ -166,9 +165,12 @@ export function MT5ConnectionWizard({ onSuccess, onBack }: MT5ConnectionWizardPr
                 <ul className="text-xs space-y-1 list-disc list-inside">
                   {error.includes('MT5 API service') && (
                     <>
-                      <li>Start the MT5 API service: <code className="bg-destructive/20 px-1 rounded">trading-engine/run_mt5_api.bat</code></li>
-                      <li>Ensure MetaTrader 5 terminal is installed</li>
-                      <li>Check that port 5001 is not blocked by firewall</li>
+                      <li>If running locally: Start the MT5 API service (<code className="bg-destructive/20 px-1 rounded">trading-engine/run_mt5_api.bat</code>)</li>
+                      <li>If using Windows server: Ensure the MT5 API service is running on the Windows server (check Windows Service status)</li>
+                      <li>Ensure MetaTrader 5 terminal is installed (on local machine or Windows server)</li>
+                      <li>Check that port 5001 is not blocked by firewall (Windows Firewall and cloud security groups)</li>
+                      <li>Verify network connectivity to the MT5 API service (ping Windows server IP, test port 5001)</li>
+                      <li>For Windows server: Verify MT5_API_URL in backend configuration points to Windows server IP</li>
                     </>
                   )}
                   {(error.includes('Unable to connect') || error.includes('Failed to fetch') || error.includes('NETWORK_ERROR')) && (
@@ -210,9 +212,12 @@ export function MT5ConnectionWizard({ onSuccess, onBack }: MT5ConnectionWizardPr
                   <div className="mt-2 pt-2 border-t border-destructive/20">
                     <p className="text-xs font-medium mb-1">Troubleshooting:</p>
                     <ul className="text-xs space-y-1 list-disc list-inside">
-                      <li>Start the MT5 API service: <code className="bg-destructive/20 px-1 rounded">trading-engine/run_mt5_api.bat</code></li>
-                      <li>Ensure MetaTrader 5 terminal is installed</li>
-                      <li>Check that port 5001 is not blocked by firewall</li>
+                      <li>If running locally: Start the MT5 API service (<code className="bg-destructive/20 px-1 rounded">trading-engine/run_mt5_api.bat</code>)</li>
+                      <li>If using Windows server: Verify the MT5 API service is running on the Windows server (check Windows Service: MT5APIService)</li>
+                      <li>Ensure MetaTrader 5 terminal is installed (on local machine or Windows server)</li>
+                      <li>Check that port 5001 is not blocked by firewall (Windows Firewall and cloud security groups)</li>
+                      <li>For remote servers: Verify network connectivity and firewall rules allow connections from Linux VPS to Windows server</li>
+                      <li>Verify MT5_API_URL in backend configuration matches Windows server IP address</li>
                     </ul>
                   </div>
                 )}

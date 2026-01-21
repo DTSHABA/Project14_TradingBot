@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { MT5ConnectionWizard } from '@/components/mt5/MT5ConnectionWizard';
 import { useMT5Connection } from '@/hooks/useMT5Connection';
 import { createBotConfig } from '@/lib/api/bot-config';
-import { useAuth } from '@/lib/auth-context';
 import type { NewBotConfig, TradingSession } from '@/types/trading';
 
 const PRIME_SESSIONS: TradingSession[] = [
@@ -23,8 +22,8 @@ const ACCEPTABLE_SESSIONS: TradingSession[] = [
 
 export function Onboarding() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { accounts, refreshAccounts } = useMT5Connection();
+  const { accounts, refreshAccounts, isLoading } = useMT5Connection();
+  const hasCheckedAccounts = useRef(false);
   const [step, setStep] = useState(1);
   const [mt5AccountId, setMt5AccountId] = useState<string | null>(null);
   const [botConfig, setBotConfig] = useState<Partial<NewBotConfig>>({
@@ -36,15 +35,20 @@ export function Onboarding() {
   const [isCreatingConfig, setIsCreatingConfig] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if user already has accounts and redirect to dashboard
   useEffect(() => {
-    // Check if user already has accounts
-    refreshAccounts().then(() => {
-      if (accounts.length > 0) {
-        // User already onboarded, redirect to dashboard
-        navigate('/dashboard');
-      }
-    });
-  }, []);
+    if (!hasCheckedAccounts.current && !isLoading) {
+      hasCheckedAccounts.current = true;
+      refreshAccounts();
+    }
+  }, [refreshAccounts, isLoading]);
+
+  // Redirect to dashboard if user already has accounts
+  useEffect(() => {
+    if (!isLoading && accounts.length > 0) {
+      navigate('/dashboard');
+    }
+  }, [accounts, isLoading, navigate]);
 
   const handleMT5Success = (accountId: string) => {
     setMt5AccountId(accountId);
