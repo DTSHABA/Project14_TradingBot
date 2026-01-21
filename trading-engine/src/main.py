@@ -220,6 +220,18 @@ class ExecutionLoop:
     def run_cycle(self) -> None:
         """Execute one trading cycle."""
         try:
+            # Check if trading is enabled in bot config
+            bot_config = self.database.get_bot_config()
+            if bot_config and not bot_config.get('is_trading_active', False):
+                # Log at INFO level every 10th cycle (every 5 minutes) to avoid spam
+                if int(time.time()) % 300 < 30:  # Log roughly every 5 minutes
+                    logger.info("Trading is disabled in bot configuration (is_trading_active = false)")
+                else:
+                    logger.debug("Trading is disabled in bot configuration")
+                # Still monitor positions even when trading is disabled
+                self._monitor_positions()
+                return
+            
             # Check session
             session_info = self.session_manager.is_trading_window()
             if not session_info['active']:

@@ -27,6 +27,48 @@ CONNECTION_TIMEOUT = 25
 # Store connector instance (reuse across requests for efficiency)
 mt5_connector = None
 
+# API Key authentication (optional)
+MT5_API_KEY = os.getenv('MT5_API_KEY', None)
+
+def check_api_key():
+    """
+    Check if API key authentication is required and validate the provided key.
+    Returns (is_valid, error_message) tuple.
+    """
+    # If no API key is configured, allow all requests (backward compatible)
+    if not MT5_API_KEY:
+        return True, None
+    
+    # Get API key from request header
+    provided_key = request.headers.get('X-API-Key') or request.headers.get('Authorization')
+    
+    # Remove 'Bearer ' prefix if present
+    if provided_key and provided_key.startswith('Bearer '):
+        provided_key = provided_key[7:]
+    
+    if not provided_key:
+        return False, 'API key is required. Provide it in X-API-Key header.'
+    
+    if provided_key != MT5_API_KEY:
+        return False, 'Invalid API key.'
+    
+    return True, None
+
+def require_api_key(f):
+    """Decorator to require API key authentication for routes"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        is_valid, error = check_api_key()
+        if not is_valid:
+            return jsonify({
+                'error': error or 'Authentication required'
+            }), 401
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
 def check_mt5_process_running():
     """
     Check if MetaTrader 5 terminal process is running on Windows.
@@ -65,20 +107,33 @@ def check_mt5_process_running():
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """
+    Health check endpoint
+    Does not require API key (allows monitoring without authentication)
+    but will validate API key if provided for consistency
+    """
     # Quick check if MT5 terminal might be running
     mt5_running = check_mt5_process_running()
+    
+    # Validate API key if configured and provided (but don't require it for health checks)
+    api_key_valid = True
+    if MT5_API_KEY:
+        is_valid, _ = check_api_key()
+        api_key_valid = is_valid
     
     response = {
         'status': 'healthy',
         'service': 'mt5-api',
         'version': '1.0.0',
-        'mt5_terminal_detected': mt5_running if mt5_running is not None else 'unknown'
+        'mt5_terminal_detected': mt5_running if mt5_running is not None else 'unknown',
+        'api_key_configured': MT5_API_KEY is not None,
+        'api_key_valid': api_key_valid if MT5_API_KEY else None
     }
     
     return jsonify(response)
 
 @app.route('/mt5/test-connection', methods=['POST'])
+@require_api_key
 def test_connection():
     """
     Test MT5 connection with provided credentials
@@ -307,6 +362,7 @@ def test_connection():
         }), 500
 
 @app.route('/mt5/connect', methods=['POST'])
+@require_api_key
 def connect():
     """
     Establish persistent MT5 connection
@@ -367,6 +423,7 @@ def connect():
         }), 500
 
 @app.route('/mt5/disconnect', methods=['POST'])
+@require_api_key
 def disconnect():
     """Disconnect from MT5"""
     global mt5_connector
@@ -413,15 +470,171 @@ def status():
         } if account_info else None
     })
 
+@app.route('/mt5/close-position', methods=['POST'])
+@require_api_key
+def close_position():
+    """
+    Close an open MT5 position
+    
+    Expected JSON body:
+    {
+        "account_number": "10008463761",
+        "password": "your_password",
+        "server": "MetaQuotes-Demo",
+        "ticket": 12345678,
+        "volume": 0.01 (optional, for partial close)
+    }
+    
+    Returns:
+    {
+        "success": true/false,
+        "error": "error message" (if failed)
+    }
+    """
+    global mt5_connector
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        account_number = data.get('account_number')
+        password = data.get('password')
+        server = data.get('server')
+        ticket = data.get('ticket')
+        volume = data.get('volume')  # Optional, for partial close
+        
+        if not account_number or not password or not server or not ticket:
+            return jsonify({
+                'success': False,
+                'error': 'account_number, password, server, and ticket are required'
+            }), 400
+        
+        # Convert account number to integer
+        try:
+            login = int(account_number)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'account_number must be numeric'
+            }), 400
+        
+        # Ensure we're connected to the right account
+        if not mt5_connector or not mt5_connector.is_connected():
+            # Need to connect first
+            mt5_connector = MT5Connector()
+            connected = mt5_connector.connect(login, password, server)
+            if not connected:
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to connect to MT5'
+                }), 500
+        elif mt5_connector.login != login:
+            # Different account, reconnect
+            mt5_connector.disconnect()
+            mt5_connector = MT5Connector()
+            connected = mt5_connector.connect(login, password, server)
+            if not connected:
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to connect to MT5'
+                }), 500
+        
+        # Get open positions
+        import MetaTrader5 as mt5
+        positions = mt5.positions_get()
+        
+        if positions is None:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to get positions'
+            }), 500
+        
+        # Find the position
+        position = next((p for p in positions if p.ticket == ticket), None)
+        
+        if not position:
+            return jsonify({
+                'success': False,
+                'error': f'Position {ticket} not found'
+            }), 404
+        
+        # Determine order type (opposite of position)
+        if position.type == mt5.ORDER_TYPE_BUY:
+            order_type = mt5.ORDER_TYPE_SELL
+            price = mt5.symbol_info_tick(position.symbol).bid
+        else:  # SELL position
+            order_type = mt5.ORDER_TYPE_BUY
+            price = mt5.symbol_info_tick(position.symbol).ask
+        
+        close_volume = volume if volume else position.volume
+        
+        # Prepare close request
+        request_data = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": position.symbol,
+            "volume": close_volume,
+            "type": order_type,
+            "position": ticket,
+            "price": price,
+            "deviation": 20,  # 2 points slippage tolerance
+            "magic": 234000,
+            "comment": "Force close",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_IOC,
+        }
+        
+        # Execute close order
+        result = mt5.order_send(request_data)
+        
+        if result is None:
+            error = mt5.last_error()
+            return jsonify({
+                'success': False,
+                'error': f'MT5 error: {error[1]} (code: {error[0]})'
+            }), 500
+        
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            return jsonify({
+                'success': False,
+                'error': f'Order rejected: {result.comment} (code: {result.retcode})'
+            }), 500
+        
+        logger.info(f"Closed position {ticket} successfully")
+        return jsonify({
+            'success': True,
+            'price': result.price,
+            'volume': close_volume
+        })
+        
+    except Exception as e:
+        logger.error(f"Error closing position: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f'Internal server error: {str(e)}'
+        }), 500
+
 def main():
     """Run the MT5 API service"""
     port = int(os.getenv('MT5_API_PORT', 5001))
-    host = os.getenv('MT5_API_HOST', '127.0.0.1')
+    # Default to 0.0.0.0 to allow remote connections from VPS
+    host = os.getenv('MT5_API_HOST', '0.0.0.0')
     debug = os.getenv('DEBUG', 'false').lower() == 'true'
     
     logger.info(f"Starting MT5 API service on {host}:{port}")
     logger.info(f"Health check: http://{host}:{port}/health")
     logger.info(f"Test endpoint: http://{host}:{port}/mt5/test-connection")
+    
+    if MT5_API_KEY:
+        logger.info("API key authentication is ENABLED")
+        logger.warning("All MT5 API endpoints (except /health) require X-API-Key header")
+    else:
+        logger.info("API key authentication is DISABLED (allowing unauthenticated access)")
+        logger.warning("For production deployments, set MT5_API_KEY environment variable for security")
     
     app.run(host=host, port=port, debug=debug)
 

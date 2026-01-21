@@ -344,17 +344,46 @@ dashboardRoutes.post('/force-close-position', async (c) => {
       return c.json({ error: 'No open position found' }, 404);
     }
 
-    // TODO: Actually close the position via MT5 API
-    // For now, just mark it as force closed in the database
+    // Decrypt credentials to close position via MT5 API
+    let accountNumber: string;
+    let password: string;
+    try {
+      accountNumber = decrypt(account.account_number);
+      password = decrypt(account.password);
+    } catch (error) {
+      console.error('Error decrypting credentials:', error);
+      return c.json({ error: 'Failed to decrypt credentials' }, 500);
+    }
+
+    // Close position via MT5 API
+    const closeResult = await closeMT5Position(
+      accountNumber,
+      password,
+      account.server,
+      openPosition.ticket
+    );
+
+    if (!closeResult.success) {
+      return c.json({ 
+        error: closeResult.error || 'Failed to close position via MT5',
+        mt5_error: true
+      }, 500);
+    }
+
+    // Update trade record in database
     await db.update(trades)
       .set({
         exit_reason: 'force_close',
         exit_time: new Date(),
+        exit_price: closeResult.price?.toString() || null,
         updated_at: new Date(),
       })
       .where(eq(trades.id, openPosition.id));
 
-    return c.json({ success: true });
+    return c.json({ 
+      success: true,
+      price: closeResult.price
+    });
   } catch (error) {
     console.error('Error force closing position:', error);
     return c.json({ error: 'Failed to force close position' }, 500);

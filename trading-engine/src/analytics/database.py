@@ -39,6 +39,21 @@ class Database:
             'postgresql://postgres:password@localhost:5502/postgres'
         )
         
+        # Log which database URL is being used (mask password)
+        import re
+        import logging
+        logger = logging.getLogger(__name__)
+        if self.connection_string:
+            masked_url = re.sub(r':([^:@]+)@', r':****@', self.connection_string)
+            logger.info(f"Database connection: {masked_url}")
+            
+            # Warn if using localhost default
+            if self.connection_string == 'postgresql://postgres:password@localhost:5502/postgres':
+                logger.warning(
+                    "⚠️  Using DEFAULT localhost database connection! "
+                    "Set DATABASE_URL or POSTGRES_URL in .env file to use production database."
+                )
+        
         # Get user_id and mt5_account_id from parameter or env vars
         self.user_id = user_id or os.getenv('TRADING_ENGINE_USER_ID')
         self.mt5_account_id = mt5_account_id or os.getenv('TRADING_ENGINE_MT5_ACCOUNT_ID')
@@ -555,6 +570,34 @@ class Database:
                 return dict(row) if row else None
         except Exception as e:
             raise RuntimeError(f"Failed to get trade by ticket: {e}")
+        finally:
+            self._return_connection(conn)
+    
+    def get_bot_config(self) -> Optional[Dict[str, Any]]:
+        """
+        Get bot configuration for the current user and MT5 account.
+        
+        Returns:
+            Bot config dictionary with is_trading_active flag, or None if not found
+        """
+        conn = self._get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT is_trading_active, risk_percent, stop_loss_range, 
+                           risk_reward_ratio, trading_sessions
+                    FROM app.bot_configs 
+                    WHERE user_id = %s AND mt5_account_id = %s
+                    LIMIT 1
+                """, (self.user_id, self.mt5_account_id))
+                
+                row = cursor.fetchone()
+                return dict(row) if row else None
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get bot config: {e}")
+            return None
         finally:
             self._return_connection(conn)
     
