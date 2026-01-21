@@ -1,7 +1,40 @@
 import { getAuth } from 'firebase/auth';
 import { app } from './firebase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5500';
+/**
+ * Get the API base URL
+ * Priority:
+ * 1. VITE_API_URL environment variable (set at build time)
+ * 2. Auto-detect production by hostname
+ * 3. Fallback to localhost for development
+ */
+function getApiBaseUrl(): string {
+  // If env var is set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Auto-detect production by hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // Production domain - use same origin (HTTP since site is not HTTPS yet)
+    if (hostname === 'aibotrades.com' || hostname === 'www.aibotrades.com') {
+      return `${window.location.protocol}//${hostname}`;
+    }
+    
+    // Also handle IP addresses that might be used for the VPS
+    if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      return `${window.location.protocol}//${hostname}`;
+    }
+  }
+  
+  // Development fallback
+  return 'http://localhost:5500';
+}
+
+// Export API_BASE_URL so other components can use it for display purposes
+export const API_BASE_URL = getApiBaseUrl();
 
 // Functional error type instead of class
 interface APIError extends Error {
