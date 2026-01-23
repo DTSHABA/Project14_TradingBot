@@ -12,11 +12,12 @@ const DEFAULT_FIREBASE_CONFIG: FirebaseOptions = {
   measurementId: "G-6PTW5WWK3E"
 };
 
-// Try to import firebase-config.json (may not exist in all environments)
+// Import firebase-config.json (Vite will bundle this at build time)
+// If file doesn't exist or has demo values, we'll use DEFAULT_FIREBASE_CONFIG as fallback
 let firebaseConfigJson: Partial<FirebaseOptions> = {};
 try {
-  // Regular ES module import - Vite will handle this at build time
-  const configModule = await import('./firebase-config.json');
+  // Regular ES module import - Vite handles this at build time
+  const configModule = require('./firebase-config.json');
   firebaseConfigJson = configModule.default || configModule;
   
   // Validate imported config is not demo values
