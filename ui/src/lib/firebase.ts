@@ -14,22 +14,16 @@ const DEFAULT_FIREBASE_CONFIG: FirebaseOptions = {
 
 // Import firebase-config.json (Vite will bundle this at build time)
 // If file doesn't exist or has demo values, we'll use DEFAULT_FIREBASE_CONFIG as fallback
-let firebaseConfigJson: Partial<FirebaseOptions> = {};
-try {
-  // Regular ES module import - Vite handles this at build time
-  const configModule = require('./firebase-config.json');
-  firebaseConfigJson = configModule.default || configModule;
-  
-  // Validate imported config is not demo values
-  if (firebaseConfigJson.apiKey?.includes('demo') || 
-      firebaseConfigJson.apiKey === 'demo-api-key' ||
-      firebaseConfigJson.apiKey?.includes('DemoKeyForLocalDevelopment')) {
-    console.warn('⚠️ firebase-config.json contains demo values, using default production config');
-    firebaseConfigJson = {};
-  }
-} catch (e) {
-  // File doesn't exist or can't be imported - use default
-  console.warn('⚠️ firebase-config.json not found, using default production config');
+import firebaseConfigJsonRaw from './firebase-config.json';
+
+// Validate and clean imported config
+let firebaseConfigJson: Partial<FirebaseOptions> = firebaseConfigJsonRaw || {};
+if (firebaseConfigJson.apiKey?.includes('demo') || 
+    firebaseConfigJson.apiKey === 'demo-api-key' ||
+    firebaseConfigJson.apiKey?.includes('DemoKeyForLocalDevelopment') ||
+    firebaseConfigJson.projectId === 'demo-project') {
+  console.warn('⚠️ firebase-config.json contains demo values, using default production config');
+  firebaseConfigJson = {};
 }
 
 // Build Firebase config from environment variables, JSON file, or defaults (in that order of precedence)
@@ -115,4 +109,4 @@ if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
   }
 } else {
   console.log(`🏭 Using production Firebase Auth (Project: ${firebaseConfig.projectId})`);
-} 
+}
