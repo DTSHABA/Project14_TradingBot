@@ -1,10 +1,39 @@
 import { initializeApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth';
-import firebaseConfigJson from './firebase-config.json';
 
-// Build Firebase config from JSON file or environment variables (env vars take precedence)
+// Default production Firebase config (hardcoded as fallback - ensures it always works)
+const DEFAULT_FIREBASE_CONFIG: FirebaseOptions = {
+  apiKey: "AIzaSyAijr2peSKkNWRH0j3qMmb_Ve6pIwjp9dE",
+  authDomain: "my-first-project-31367.firebaseapp.com",
+  projectId: "my-first-project-31367",
+  storageBucket: "my-first-project-31367.firebasestorage.app",
+  messagingSenderId: "734914644733",
+  appId: "1:734914644733:web:1971a0bbf025b41e0a0c94",
+  measurementId: "G-6PTW5WWK3E"
+};
+
+// Try to import firebase-config.json (may not exist in all environments)
+let firebaseConfigJson: Partial<FirebaseOptions> = {};
+try {
+  // Regular ES module import - Vite will handle this at build time
+  const configModule = await import('./firebase-config.json');
+  firebaseConfigJson = configModule.default || configModule;
+  
+  // Validate imported config is not demo values
+  if (firebaseConfigJson.apiKey?.includes('demo') || 
+      firebaseConfigJson.apiKey === 'demo-api-key' ||
+      firebaseConfigJson.apiKey?.includes('DemoKeyForLocalDevelopment')) {
+    console.warn('⚠️ firebase-config.json contains demo values, using default production config');
+    firebaseConfigJson = {};
+  }
+} catch (e) {
+  // File doesn't exist or can't be imported - use default
+  console.warn('⚠️ firebase-config.json not found, using default production config');
+}
+
+// Build Firebase config from environment variables, JSON file, or defaults (in that order of precedence)
 const buildFirebaseConfig = (): FirebaseOptions => {
-  // Check if environment variables are provided (for production overrides)
+  // Check if environment variables are provided (highest priority)
   const envConfig: Partial<FirebaseOptions> = {};
   
   if (import.meta.env.VITE_FIREBASE_API_KEY) {
@@ -29,8 +58,9 @@ const buildFirebaseConfig = (): FirebaseOptions => {
     envConfig.measurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID;
   }
 
-  // Merge: environment variables override JSON file
+  // Merge: environment variables > JSON file > defaults
   const config: FirebaseOptions = {
+    ...DEFAULT_FIREBASE_CONFIG,
     ...firebaseConfigJson,
     ...envConfig,
   } as FirebaseOptions;
