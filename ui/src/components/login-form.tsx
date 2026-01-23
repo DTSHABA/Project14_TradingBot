@@ -108,8 +108,22 @@ export function LoginForm() {
             console.log('Google account exists, showing user prompt');
             return;
           } else {
-            // Other linking errors
-            setError("Failed to link Google account.");
+            // Other linking errors - provide more specific error messages
+            let errorMessage = "Failed to link Google account.";
+            
+            if (linkError.code === 'auth/unauthorized-domain') {
+              errorMessage = "This domain is not authorized. Please contact support or check Firebase Console settings.";
+            } else if (linkError.code === 'auth/popup-blocked') {
+              errorMessage = "Popup was blocked. Please allow popups for this site and try again.";
+            } else if (linkError.code === 'auth/popup-closed-by-user') {
+              errorMessage = "Sign-in popup was closed. Please try again.";
+            } else if (linkError.code === 'auth/network-request-failed') {
+              errorMessage = "Network error. Please check your connection and try again.";
+            } else if (linkError.message) {
+              errorMessage = `Failed to link account: ${linkError.message}`;
+            }
+            
+            setError(errorMessage);
             console.error('Google link error:', linkError);
             return;
           }
@@ -119,7 +133,24 @@ export function LoginForm() {
         await signInWithPopup(auth, googleProvider);
       }
     } catch (err: any) {
-      setError("Failed to sign in with Google.");
+      // Provide more specific error messages
+      let errorMessage = "Failed to sign in with Google.";
+      
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized. Please contact support or check Firebase Console settings.";
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked. Please allow popups for this site and try again.";
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in popup was closed. Please try again.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorMessage = "Google sign-in is not enabled. Please contact support.";
+      } else if (err.message) {
+        errorMessage = `Failed to sign in: ${err.message}`;
+      }
+      
+      setError(errorMessage);
       console.error('Google auth error:', err);
     } finally {
       setIsLoading(false);
@@ -134,7 +165,24 @@ export function LoginForm() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
-      setError("Failed to sign in with Google.");
+      // Provide more specific error messages
+      let errorMessage = "Failed to sign in with Google.";
+      
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized. Please contact support or check Firebase Console settings.";
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = "Popup was blocked. Please allow popups for this site and try again.";
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in popup was closed. Please try again.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorMessage = "Google sign-in is not enabled. Please contact support.";
+      } else if (err.message) {
+        errorMessage = `Failed to sign in: ${err.message}`;
+      }
+      
+      setError(errorMessage);
       console.error('Google auth error:', err);
     } finally {
       setIsLoading(false);

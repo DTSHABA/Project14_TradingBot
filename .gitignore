@@ -17,7 +17,6 @@ build
 !.env.example
 
 # Generated configuration files (created by CLI setup)
-ui/src/lib/firebase-config.json
 server/.dev.vars
 
 # Editor directories and files
@@ -62,3 +61,19 @@ worker-configuration.d.ts
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Python
+trading-engine/venv/
+trading-engine/**/__pycache__/
+trading-engine/**/*.pyc
+trading-engine/**/*.pyo
+trading-engine/**/*.pyd
+trading-engine/.Python
+trading-engine/**/*.so
+trading-engine/**/*.egg-info/
+trading-engine/**/dist/
+trading-engine/**/build/
+
+# MT5 Wine Service logs
+deployment/mt5-wine-service/logs/
+deployment/mt5-wine-service/**/*.log

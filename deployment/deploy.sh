@@ -53,6 +53,23 @@ pip install -r requirements.txt
 deactivate
 cd ..
 
+# Verify Firebase configuration before building
+echo -e "${GREEN}Verifying Firebase configuration...${NC}"
+if [ -f "$APP_DIR/ui/src/lib/firebase-config.json" ]; then
+    # Check if Firebase config is valid (not demo values)
+    if grep -q "demo-api-key\|demo-project" "$APP_DIR/ui/src/lib/firebase-config.json"; then
+        echo -e "${RED}  ✗ Firebase config contains demo/placeholder values!${NC}"
+        echo -e "${YELLOW}  Please update ui/src/lib/firebase-config.json with valid Firebase credentials${NC}"
+        exit 1
+    else
+        echo -e "${GREEN}  ✓ Firebase config looks valid${NC}"
+    fi
+else
+    echo -e "${RED}  ✗ Firebase config file not found!${NC}"
+    echo -e "${YELLOW}  Please create ui/src/lib/firebase-config.json${NC}"
+    exit 1
+fi
+
 # Build frontend
 echo -e "${GREEN}Building frontend...${NC}"
 cd ui
