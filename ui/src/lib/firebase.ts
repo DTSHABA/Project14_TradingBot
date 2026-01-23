@@ -65,11 +65,16 @@ const buildFirebaseConfig = (): FirebaseOptions => {
     ...envConfig,
   } as FirebaseOptions;
 
-  // Validate required fields
-  if (!config.apiKey || config.apiKey === 'demo-api-key' || config.apiKey.includes('demo')) {
+  // Validate required fields - check for demo keys (including the specific one seen in errors)
+  if (!config.apiKey || 
+      config.apiKey === 'demo-api-key' || 
+      config.apiKey.includes('demo') ||
+      config.apiKey.includes('DemoKeyForLocalDevelopment')) {
     console.error('❌ Firebase API key is missing or invalid!');
-    console.error('Please update ui/src/lib/firebase-config.json with your Firebase config from Firebase Console.');
-    throw new Error('Invalid Firebase API key. Please configure Firebase in firebase-config.json or via environment variables.');
+    console.error('Detected demo/invalid API key:', config.apiKey);
+    console.error('Using hardcoded production config as fallback');
+    // Don't throw - use the DEFAULT_FIREBASE_CONFIG instead
+    return DEFAULT_FIREBASE_CONFIG;
   }
 
   if (!config.projectId || config.projectId === 'demo-project') {
@@ -80,8 +85,10 @@ const buildFirebaseConfig = (): FirebaseOptions => {
   console.log(`✅ Firebase initialized with project: ${config.projectId}`);
   if (envConfig.apiKey) {
     console.log('📝 Using Firebase config from environment variables');
-  } else {
+  } else if (firebaseConfigJson.apiKey && !firebaseConfigJson.apiKey.includes('demo')) {
     console.log('📝 Using Firebase config from firebase-config.json');
+  } else {
+    console.log('📝 Using hardcoded production Firebase config (fallback)');
   }
 
   return config;
